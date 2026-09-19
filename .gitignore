@@ -1,0 +1,39 @@
+# Node & Web dependencies
+node_modules/
+**/node_modules/
+dist/
+.vite/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Unreal Engine - Intermediate build artifacts & cache (Engine auto-generates these)
+Intermediate/
+**/Intermediate/
+Saved/
+**/Saved/
+DerivedDataCache/
+**/DerivedDataCache/
+.vs/
+.idea/
+.vscode/
+*.VC.db
+*.opendb
+*.sln
+*.vcxproj*
+
+# Unreal Engine - Compiled binaries & packaged distribution builds
+Binaries/
+**/Binaries/
+unreal/build/
+**/build/
+
+# Reports & local logs
+reports/
+**/reports/
+*.log
+
+# OS metadata
+.DS_Store
+Thumbs.db
+Desktop.ini

@@ -1,0 +1,6 @@
+PathOfLight/Binaries/
+PathOfLight/Intermediate/
+PathOfLight/Saved/
+PathOfLight/DerivedDataCache/
+build/
+streaming-infrastructure/

@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Vighnaharta · Path of Light</title>
+  <link rel="stylesheet" href="vighnaharta.css">
+  <script defer src="player.js"></script>
+  <script defer src="vighnaharta.js"></script>
+</head>
+<body>
+  <nav id="game-actions" aria-label="Game actions">
+    <button data-tap="Enter" title="Enter">Play / again</button>
+    <button data-tap="Escape" title="Escape">Pause</button>
+    <button id="controls-toggle" aria-expanded="false">Controls</button>
+  </nav>
+  <aside id="controls-help" hidden>
+    <strong>Run ahead. Keep the path clear.</strong>
+    <p>Mooshak runs automatically. A / D steer. W / S adjust pace. Space jumps.</p>
+    <p>Hold Shift to catch a marked target. Release to launch from an anchor or throw a loose object. Hold near a roadblock to clear it.</p>
+    <p>Clear roadblocks before the procession arrives. Three ceremonial stops end the run. R tries again.</p>
+    <p>Touch: hold the arrows to steer; hold Tail to tether; tap Jump.</p>
+  </aside>
+  <div id="touch-controls" aria-label="Touch controls">
+    <div class="control-group"><button data-hold="KeyA" aria-label="Steer left">◀</button><button data-hold="KeyD" aria-label="Steer right">▶</button></div>
+    <div class="control-group"><button data-hold="Space">Jump</button><button data-hold="ShiftLeft" class="tail">Tail</button></div>
+  </div>
+  <div id="rotate-hint">Turn your phone sideways for a wider view.</div>
+</body>
+</html>

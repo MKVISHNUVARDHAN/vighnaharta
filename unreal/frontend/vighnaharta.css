@@ -1,0 +1,15 @@
+:root { color-scheme: dark; font-family: system-ui, sans-serif; }
+html, body { width:100%; height:100%; margin:0; overflow:hidden; background:#080d19; overscroll-behavior:none; }
+button { color:#fff4df; border:1px solid #a58a58; border-radius:12px; background:#131b2eee; padding:10px 17px; font:600 14px system-ui; cursor:pointer; touch-action:none; user-select:none; -webkit-user-select:none; }
+button:focus-visible { outline:3px solid #ffd478; outline-offset:3px; }
+button:active, button.held { background:#ae6b16; transform:translateY(1px); }
+#game-actions { position:fixed; top:max(12px,env(safe-area-inset-top)); right:max(12px,env(safe-area-inset-right)); z-index:30; display:flex; gap:7px; }
+#controls-help { position:fixed; right:14px; top:68px; z-index:31; width:min(380px,calc(100vw - 60px)); padding:20px; border:1px solid #a58a58; border-radius:16px; background:#111a2cf5; color:#e9e5dc; font-size:15px; line-height:1.5; }
+#controls-help strong { color:#ffd478; font-size:18px; }
+#touch-controls { display:none; position:fixed; left:max(20px,env(safe-area-inset-left)); right:max(20px,env(safe-area-inset-right)); bottom:max(42px,env(safe-area-inset-bottom)); justify-content:space-between; z-index:25; pointer-events:none; }
+.control-group { display:flex; gap:12px; pointer-events:auto; }
+.control-group button { min-width:68px; min-height:62px; font-size:18px; background:#132036c9; }
+.control-group .tail { border:2px solid #ffc46c; color:#ffda99; min-width:88px; }
+#rotate-hint { display:none; }
+@media (pointer:coarse) { #touch-controls { display:flex; } }
+@media (orientation:portrait) and (pointer:coarse) { #rotate-hint { display:block; position:fixed; bottom:125px; width:100%; text-align:center; color:#ffda99; z-index:25; } }

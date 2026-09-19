@@ -1,0 +1,19 @@
+{
+  "pipeline": "vighnaharta-blender-glb-2026",
+  "blender": "4.2 LTS or 5.x",
+  "workingSpace": "Linear Rec.709 (game assets); ACEScg only for trailer masters",
+  "preExport": [
+    "n-gons eliminated (tris_convert safety in export script)",
+    "doubles merged, normals recalculated outside",
+    "scale applied (Ctrl+A), origin at bottom-center",
+    "UV0 albedo complete; UV1 lightmap non-overlapping, margin 0.02-0.04",
+    "materials use Principled BSDF with plausible values",
+    "albedo sRGB 30-240; data maps (rough/metal/normal/AO/ORM) Non-Color",
+    "ORM packing is R=AO G=Rough B=Metal; G->Roughness, B->Metallic, R->occlusion",
+    "metallic binary 0/1; roughness never exactly 0",
+    "emissive strength >1 only for true glow (diya flame 3.5)",
+    "collision proxy UCX_<asset> authored",
+    "neutral-HDRI smoke render matches grey reference",
+    "exported as GLB (single file), intake recorded in ATTRIBUTIONS.md"
+  ]
+}

@@ -1,0 +1,141 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: dark;
+  font-synthesis: none;
+}
+* {
+  box-sizing: border-box;
+}
+html,
+body,
+#root {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  overflow: hidden;
+  background: #0a0a1a;
+}
+body {
+  font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+  color: #f5f0e8;
+  overscroll-behavior: none;
+  -webkit-tap-highlight-color: transparent;
+}
+button,
+input {
+  font: inherit;
+}
+button:focus-visible,
+input:focus-visible {
+  outline: 2px solid #ffd36a;
+  outline-offset: 3px;
+}
+canvas {
+  display: block;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+}
+
+/* ── Toast Animations ── */
+@keyframes toast-pop {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, 14px) scale(0.82);
+  }
+  18% {
+    opacity: 1;
+    transform: translate(-50%, 0) scale(1.08);
+  }
+  75% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -20px) scale(0.98);
+  }
+}
+
+.toast-pop {
+  animation: toast-pop 0.9s cubic-bezier(0.18, 0.8, 0.2, 1) both;
+}
+
+/* ── Score Pop ── */
+@keyframes score-pop {
+  0% { transform: scale(1); }
+  30% { transform: scale(1.15); }
+  100% { transform: scale(1); }
+}
+
+.score-pop {
+  animation: score-pop 0.3s ease-out;
+}
+
+/* ── Pulse (for bells, surge, etc.) ── */
+@keyframes pulse-glow {
+  0%, 100% { filter: brightness(1); }
+  50% { filter: brightness(1.5); }
+}
+
+.pulse-glow {
+  animation: pulse-glow 0.8s ease-in-out infinite;
+}
+
+/* ── Fade In ── */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+.animate-fadeIn {
+  animation: fadeIn 0.4s ease both;
+}
+
+/* ── Slide Up ── */
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.animate-slideUp {
+  animation: slideUp 0.5s ease both;
+}
+
+/* ── Landscape Orientation Hint ── */
+@media (orientation: portrait) and (max-width: 640px) {
+  .rotate-note {
+    display: block;
+    position: fixed;
+    inset: 0;
+    z-index: 100;
+    background: rgba(10, 10, 26, 0.95);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #ffd36a;
+    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-align: center;
+    padding: 20px;
+  }
+}
+
+/* ── Reduced Motion ── */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

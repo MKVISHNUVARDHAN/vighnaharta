@@ -1,0 +1,205 @@
+[
+  {
+    "id": "building_A",
+    "file": "/assets/festival/building_A.png",
+    "source": "https://github.com/KayKit-Game-Assets/KayKit-City-Builder-Bits-1.0",
+    "commit": "63976910ca04d16f0fc531b9c614244be8128713",
+    "creator": "Kay Lousberg",
+    "license": "CC0-1.0",
+    "originalFile": "addons/kaykit_city_builder_bits/Assets/gltf/building_A.gltf",
+    "sha256": "d9d21afb847de1c67a643cc34738f0b71d71f6a8926e8fa7f248bb6a434a22ba",
+    "outputSha256": "4ba7dd61f7c0eb31cbc782d730e9dc7e77766ef04d488110e141f3f4b086abfb",
+    "dimensions": [
+      504,
+      498
+    ],
+    "pivot": [
+      0.5,
+      0.6346705507286371
+    ],
+    "animation": "static model; runtime prop transforms"
+  },
+  {
+    "id": "building_B",
+    "file": "/assets/festival/building_B.png",
+    "source": "https://github.com/KayKit-Game-Assets/KayKit-City-Builder-Bits-1.0",
+    "commit": "63976910ca04d16f0fc531b9c614244be8128713",
+    "creator": "Kay Lousberg",
+    "license": "CC0-1.0",
+    "originalFile": "addons/kaykit_city_builder_bits/Assets/gltf/building_B.gltf",
+    "sha256": "d026df95a16e31d1d50827375db7978099af35eefbb255bf6674855d303fb390",
+    "outputSha256": "ac1dc39b7e173f66ff5c72044a63cff92e634efc0b03a77174bc55420abf1939",
+    "dimensions": [
+      494,
+      504
+    ],
+    "pivot": [
+      0.4994867953905395,
+      0.646843599818113
+    ],
+    "animation": "static model; runtime prop transforms"
+  },
+  {
+    "id": "building_C",
+    "file": "/assets/festival/building_C.png",
+    "source": "https://github.com/KayKit-Game-Assets/KayKit-City-Builder-Bits-1.0",
+    "commit": "63976910ca04d16f0fc531b9c614244be8128713",
+    "creator": "Kay Lousberg",
+    "license": "CC0-1.0",
+    "originalFile": "addons/kaykit_city_builder_bits/Assets/gltf/building_C.gltf",
+    "sha256": "d2477afdb8a68507ab862ede37f47a2a7b74df369290bc57712239214c6ae2c8",
+    "outputSha256": "b469ff921c6890efb21427c17b45e6c498722882c14160375b57e3eabf41fcc7",
+    "dimensions": [
+      419,
+      504
+    ],
+    "pivot": [
+      0.499361936936942,
+      0.6994751083312505
+    ],
+    "animation": "static model; runtime prop transforms"
+  },
+  {
+    "id": "bench",
+    "file": "/assets/festival/bench.png",
+    "source": "https://github.com/KayKit-Game-Assets/KayKit-City-Builder-Bits-1.0",
+    "commit": "63976910ca04d16f0fc531b9c614244be8128713",
+    "creator": "Kay Lousberg",
+    "license": "CC0-1.0",
+    "originalFile": "addons/kaykit_city_builder_bits/Assets/gltf/bench.gltf",
+    "sha256": "f3b731470c30ed21d7e03f15d28f1937b3e4881efcca57a48e4c82ae582e51e1",
+    "outputSha256": "d8d5ebbcc6857bc16d9584937a725859fa20ae47e49e07d69e1184f1f5b5cf8c",
+    "dimensions": [
+      505,
+      425
+    ],
+    "pivot": [
+      0.49900990099009906,
+      0.6553688633287049
+    ],
+    "animation": "static model; runtime prop transforms"
+  },
+  {
+    "id": "box_A",
+    "file": "/assets/festival/box_A.png",
+    "source": "https://github.com/KayKit-Game-Assets/KayKit-City-Builder-Bits-1.0",
+    "commit": "63976910ca04d16f0fc531b9c614244be8128713",
+    "creator": "Kay Lousberg",
+    "license": "CC0-1.0",
+    "originalFile": "addons/kaykit_city_builder_bits/Assets/gltf/box_A.gltf",
+    "sha256": "fe1fa867aa6aa2933bbe3d232c8dcedffc68d484019f71544ce191e2c8ddc16c",
+    "outputSha256": "238af4eaad1dc1d79a0e7903b628b8a468ca954b21fbff4cd5d3baef0de425a6",
+    "dimensions": [
+      443,
+      504
+    ],
+    "pivot": [
+      0.4996115516340206,
+      0.6825055292445004
+    ],
+    "animation": "static model; runtime prop transforms"
+  },
+  {
+    "id": "bush",
+    "file": "/assets/festival/bush.png",
+    "source": "https://github.com/KayKit-Game-Assets/KayKit-City-Builder-Bits-1.0",
+    "commit": "63976910ca04d16f0fc531b9c614244be8128713",
+    "creator": "Kay Lousberg",
+    "license": "CC0-1.0",
+    "originalFile": "addons/kaykit_city_builder_bits/Assets/gltf/bush.gltf",
+    "sha256": "b1de478b23e6bcfd08d6c070440582195839f66dfd3afc123118fb6298483183",
+    "outputSha256": "af47fbdefdcd0aa077a876aaaa544a0fa355322ee2c66116160d5d0e86034e16",
+    "dimensions": [
+      356,
+      504
+    ],
+    "pivot": [
+      0.49993974285997017,
+      0.8302927028907519
+    ],
+    "animation": "static model; runtime prop transforms"
+  },
+  {
+    "id": "streetlight",
+    "file": "/assets/festival/streetlight.png",
+    "source": "https://github.com/KayKit-Game-Assets/KayKit-City-Builder-Bits-1.0",
+    "commit": "63976910ca04d16f0fc531b9c614244be8128713",
+    "creator": "Kay Lousberg",
+    "license": "CC0-1.0",
+    "originalFile": "addons/kaykit_city_builder_bits/Assets/gltf/streetlight.gltf",
+    "sha256": "4399e9023844319e0f74311779a2c0ebecacec16f5dfd8123b6141a3af903c6a",
+    "outputSha256": "4a71faa20448fcb4c63ca0828bc47c7de2271613e4b6d8a32e50c48e169aab74",
+    "dimensions": [
+      151,
+      505
+    ],
+    "pivot": [
+      0.7992294678695264,
+      0.9494231283224129
+    ],
+    "animation": "static model; runtime prop transforms"
+  },
+  {
+    "id": "spark_01",
+    "file": "/assets/festival/spark_01.png",
+    "source": "https://kenney.nl/assets/particle-pack",
+    "creator": "Kenney",
+    "license": "CC0-1.0",
+    "originalFile": "PNG (Transparent)/spark_01.png",
+    "sha256": "5902da3a324cad0a4b5a88ce1e3c9cc18fee50922c358ce93d8c9f1ad7708f0a"
+  },
+  {
+    "id": "star_01",
+    "file": "/assets/festival/star_01.png",
+    "source": "https://kenney.nl/assets/particle-pack",
+    "creator": "Kenney",
+    "license": "CC0-1.0",
+    "originalFile": "PNG (Transparent)/star_01.png",
+    "sha256": "3ba3999c944a0767677449412d306c1f230daa1743b31f929533cf77a22ecf5d"
+  },
+  {
+    "id": "spark_01",
+    "file": "/assets/festival/spark_01.png",
+    "source": "https://kenney.nl/assets/particle-pack",
+    "creator": "Kenney",
+    "license": "CC0-1.0",
+    "originalFile": "PNG (Black background)/spark_01.png",
+    "sha256": "d74634d80aed77812c69e071c92f6ea7e81e54b86e8d4310407a15fcc8a0afb7"
+  },
+  {
+    "id": "star_01",
+    "file": "/assets/festival/star_01.png",
+    "source": "https://kenney.nl/assets/particle-pack",
+    "creator": "Kenney",
+    "license": "CC0-1.0",
+    "originalFile": "PNG (Black background)/star_01.png",
+    "sha256": "fa4440aefefcf5eea5cb816194a216d865e241fc1c8794ed526dc006ac9bd397"
+  },
+  {
+    "id": "footstep_wood_000",
+    "file": "/assets/festival/audio/footstep_wood_000.ogg",
+    "source": "https://kenney.nl/assets/impact-sounds",
+    "creator": "Kenney",
+    "license": "CC0-1.0",
+    "originalFile": "Audio/footstep_wood_000.ogg",
+    "sha256": "5f1c252942a220d658121bd9417448cd19649ded9fff2ff15f6e50899373ce8e"
+  },
+  {
+    "id": "footstep_wood_001",
+    "file": "/assets/festival/audio/footstep_wood_001.ogg",
+    "source": "https://kenney.nl/assets/impact-sounds",
+    "creator": "Kenney",
+    "license": "CC0-1.0",
+    "originalFile": "Audio/footstep_wood_001.ogg",
+    "sha256": "e4f68e1c9fd55b4dc8ca89ed2bbab6f200171bc54bdc18aa96b80d8e7336f462"
+  },
+  {
+    "id": "footstep_wood_002",
+    "file": "/assets/festival/audio/footstep_wood_002.ogg",
+    "source": "https://kenney.nl/assets/impact-sounds",
+    "creator": "Kenney",
+    "license": "CC0-1.0",
+    "originalFile": "Audio/footstep_wood_002.ogg",
+    "sha256": "9ff095b05cee5eec40b081defe3f0eef7232bb16d4865ce03b9f6dbab875cfdd"
+  }
+]
