@@ -1,3 +1,25 @@
+# Vighnaharta: Path of Light — Unreal 3D game
+
+This is the native Unreal Engine 5.8 project with Mooshak, four Astras, Asura enemies, weapon shrines, bells, and the Rath chase. The React app at the repository root and the other Desktop/Projects copy are separate prototypes.
+
+Read [the current gameplay audit](GAMEPLAY_AUDIT.md) for reproduced problems, fixes, and remaining verification. The historical Tail Lab description below predates the current shooter implementation and must not be used as its current feature list.
+
+## Launch and controls
+
+From the repository root, run `./unreal/scripts/run-game.ps1` to launch the packaged Windows game. Source changes require a rebuild and cook before this executable includes them.
+
+Enter starts/retries; A/D or arrows steer; Space jumps; 1–4 or Q/E select Astras; T toggles auto-cast; F, mouse buttons, or Shift cast; Escape/P pauses; R restarts. Weapon shrines select their Astra and raise the shared run tier, capped at four. Run state resets on restart; only best score persists.
+
+## Build and regression checks
+
+`./unreal/scripts/build-local.ps1` compiles the editor, preserves an existing TailLab map, then builds and cooks the Windows package. The cook must include dynamically loaded Roads, Materials, KayKit, Hero, City, Rath, Env, Demons, Astras, Weapons, and Audio assets.
+
+The development build offers isolated checks using `-PathOfLightAudit -ExecCmds="PathOfLight.Audit" -nullrhi -unattended`. Run this in a disposable process. Look for `GAMEPLAY_AUDIT COMPLETE: 0 failures`; exit status is nonzero on failure. These checks complement visual and audible playtests.
+
+---
+
+## Historical implementation and streaming notes
+
 # Vighnaharta: Path of Light — Unreal Tail Lab
 
 This is the new **Unreal Engine 5.8.2** project for the supplied competition directive. The React project at the repository root is the earlier browser prototype; it is not the authoritative runtime for this build.

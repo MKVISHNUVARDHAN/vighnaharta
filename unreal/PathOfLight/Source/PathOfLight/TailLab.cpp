@@ -44,12 +44,15 @@ static bool IsEngineShape(UStaticMesh* Shape)
     return Path.Contains(TEXT("/Engine/BasicShapes/"));
 }
 
-static UMaterialInstanceDynamic* Tint(UPrimitiveComponent* Mesh, const FLinearColor& Color, float Glow = 0.f)
+static UMaterialInstanceDynamic* Tint(UPrimitiveComponent* Mesh, const FLinearColor& Color, float Glow = 0.f, bool bForce = false)
 {
     if (!Mesh) return nullptr;
-    if (UStaticMeshComponent* StaticMesh = Cast<UStaticMeshComponent>(Mesh))
+    if (!bForce)
     {
-        if (!IsEngineShape(StaticMesh->GetStaticMesh())) return nullptr;
+        if (UStaticMeshComponent* StaticMesh = Cast<UStaticMeshComponent>(Mesh))
+        {
+            if (!IsEngineShape(StaticMesh->GetStaticMesh())) return nullptr;
+        }
     }
     UMaterialInterface* Base = FGameAssets::SolidMat;
     if (!Base) Base = LoadObject<UMaterialInterface>(nullptr, TEXT("/Game/Materials/M_Solid.M_Solid"));
@@ -274,6 +277,7 @@ void ALightSpark::Tick(float Delta)
 ALightMagicBolt::ALightMagicBolt()
 {
     PrimaryActorTick.bCanEverTick = true;
+    PrimaryActorTick.bStartWithTickEnabled = false;
     Mesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("BoltMesh"));
     SetRootComponent(Mesh);
     static ConstructorHelpers::FObjectFinder<UStaticMesh> Sphere(TEXT("/Engine/BasicShapes/Sphere.Sphere"));
@@ -293,83 +297,99 @@ void ALightMagicBolt::Launch(FVector StartPos, FVector Dir, EWeaponType InWeapon
     SetActorRotation(FRotationMatrix::MakeFromX(Dir).Rotator());
     SetActorHiddenInGame(false);
     WeaponType = InWeapon;
-    Tier = InTier;
+    Tier = FMath::Clamp(InTier, 1, 4);
+    HitTargets.Reset();
+    SetActorTickEnabled(true);
     bActive = true;
+    if (Light) Light->SetVisibility(true);
     Life = 0.f;
     SpinAngle = 0.f;
 
     if (WeaponType == EWeaponType::Vajra)
     {
-        // Indra's Vajra: High velocity electric divine lightning bolt
+        // Indra's Vajra: High velocity electric divine lightning spear
         MaxLife = 0.65f;
         PierceLeft = 3;
         BlastRadius = 0.f;
-        Velocity = Dir.GetSafeNormal() * 12500.f;
+        Velocity = Dir.GetSafeNormal() * 13500.f;
         UStaticMesh* VMesh = FGameAssets::AstraVajra ? FGameAssets::AstraVajra : FGameAssets::GunAK47;
         Mesh->SetStaticMesh(VMesh);
         Mesh->SetRelativeRotation(FRotator(90.f, 0, 0));
-        Mesh->SetWorldScale3D(FGameAssets::AstraVajra ? FVector(0.025f) : FVector(0.85f));
-        if (Light) { Light->SetLightColor(FLinearColor(0.3f, 0.9f, 1.0f)); Light->SetIntensity(6500.f); }
+        float VMeshSize = VMesh ? VMesh->GetBoundingBox().GetSize().GetMax() : 100.f;
+        float BoltScale = (VMeshSize > 1.f) ? (80.f / VMeshSize) : 0.85f;
+        Mesh->SetWorldScale3D(FVector(BoltScale, BoltScale, BoltScale * 1.4f));
+        Tint(Mesh, FLinearColor(0.2f, 0.85f, 1.0f), 8.f, true);
+        if (Light) { Light->SetLightColor(FLinearColor(0.2f, 0.9f, 1.0f)); Light->SetIntensity(14000.f); Light->SetAttenuationRadius(600.f); }
     }
     else if (WeaponType == EWeaponType::Trishul)
     {
-        // Shiva's Agni Trishul: Holy fire trident projectile
+        // Shiva's Agni Trishul: Holy fire flaming trident projectile
         MaxLife = 0.75f;
         PierceLeft = 2;
         BlastRadius = 180.f;
-        Velocity = Dir.GetSafeNormal() * 8800.f;
+        Velocity = Dir.GetSafeNormal() * 9200.f;
         UStaticMesh* TMesh = FGameAssets::AstraTrident ? FGameAssets::AstraTrident : FGameAssets::GunShotgun;
         Mesh->SetStaticMesh(TMesh);
         Mesh->SetRelativeRotation(FRotator(90.f, 0, 0));
-        Mesh->SetWorldScale3D(FGameAssets::AstraTrident ? FVector(0.022f) : FVector(0.85f));
-        if (Light) { Light->SetLightColor(FLinearColor(1.0f, 0.45f, 0.05f)); Light->SetIntensity(7500.f); }
+        float TMeshSize = TMesh ? TMesh->GetBoundingBox().GetSize().GetMax() : 100.f;
+        float BoltScale = (TMeshSize > 1.f) ? (90.f / TMeshSize) : 0.95f;
+        Mesh->SetWorldScale3D(FVector(BoltScale, BoltScale, BoltScale * 1.2f));
+        Tint(Mesh, FLinearColor(1.0f, 0.50f, 0.05f), 9.f, true);
+        if (Light) { Light->SetLightColor(FLinearColor(1.0f, 0.5f, 0.05f)); Light->SetIntensity(16000.f); Light->SetAttenuationRadius(650.f); }
     }
     else if (WeaponType == EWeaponType::Chakra)
     {
-        // Vishnu's Sudarshana Chakra: Spinning solar disc of celestial destruction
-        MaxLife = 0.80f;
-        PierceLeft = 4;
-        BlastRadius = 140.f;
-        Velocity = Dir.GetSafeNormal() * 10500.f;
+        // Vishnu's Sudarshana Chakra: Spinning razor-sharp solar disc
+        MaxLife = 0.85f;
+        PierceLeft = 5;
+        BlastRadius = 150.f;
+        Velocity = Dir.GetSafeNormal() * 11000.f;
         UStaticMesh* CMesh = FGameAssets::AstraChakra ? FGameAssets::AstraChakra : FGameAssets::GunRocketLauncher;
         Mesh->SetStaticMesh(CMesh);
         Mesh->SetRelativeRotation(FRotator::ZeroRotator);
-        Mesh->SetWorldScale3D(FGameAssets::AstraChakra ? FVector(0.015f) : FVector(0.85f));
-        if (Light) { Light->SetLightColor(FLinearColor(1.0f, 0.88f, 0.2f)); Light->SetIntensity(8500.f); }
+        float CMeshSize = CMesh ? CMesh->GetBoundingBox().GetSize().GetMax() : 100.f;
+        float BoltScale = (CMeshSize > 1.f) ? (95.f / CMeshSize) : 1.0f;
+        Mesh->SetWorldScale3D(FVector(BoltScale, BoltScale, BoltScale * 0.4f));
+        Tint(Mesh, FLinearColor(1.0f, 0.88f, 0.15f), 10.f, true);
+        if (Light) { Light->SetLightColor(FLinearColor(1.0f, 0.9f, 0.2f)); Light->SetIntensity(18000.f); Light->SetAttenuationRadius(700.f); }
     }
     else // Brahmastra
     {
-        // Celestial Brahmastra: Giant solar flare disc with 650-radius obliterating shockwave
+        // Celestial Brahmastra: Giant solar orb with 750-radius obliterating shockwave
         MaxLife = 1.35f;
-        PierceLeft = 6;
-        BlastRadius = 650.f;
-        Velocity = Dir.GetSafeNormal() * 6200.f;
+        PierceLeft = 8;
+        BlastRadius = 750.f;
+        Velocity = Dir.GetSafeNormal() * 6800.f;
         UStaticMesh* CMesh = FGameAssets::AstraChakra ? FGameAssets::AstraChakra : FGameAssets::GunFlamethrower;
         Mesh->SetStaticMesh(CMesh);
         Mesh->SetRelativeRotation(FRotator::ZeroRotator);
-        Mesh->SetWorldScale3D(FGameAssets::AstraChakra ? FVector(0.035f) : FVector(1.4f));
-        if (Light) { Light->SetLightColor(FLinearColor(1.0f, 0.95f, 0.4f)); Light->SetIntensity(12000.f); }
+        float CMeshSize = CMesh ? CMesh->GetBoundingBox().GetSize().GetMax() : 100.f;
+        float BoltScale = (CMeshSize > 1.f) ? (140.f / CMeshSize) : 1.5f;
+        Mesh->SetWorldScale3D(FVector(BoltScale));
+        Tint(Mesh, FLinearColor(1.5f, 1.3f, 0.6f), 14.f, true);
+        if (Light) { Light->SetLightColor(FLinearColor(1.0f, 0.95f, 0.5f)); Light->SetIntensity(26000.f); Light->SetAttenuationRadius(950.f); }
     }
 }
 
 void ALightMagicBolt::Deactivate()
 {
     bActive = false;
+    SetActorTickEnabled(false);
     SetActorHiddenInGame(true);
+    if (Light) Light->SetVisibility(false);
 }
 
 void ALightMagicBolt::Tick(float Delta)
 {
     Super::Tick(Delta);
-    if (!bActive) return;
-    Life += Delta;
+    if (!bActive || !Mode(this) || !Mode(this)->bRunning || Mode(this)->bPaused) return;
 
     if (WeaponType == EWeaponType::Chakra || WeaponType == EWeaponType::Brahmastra)
     {
         SpinAngle += Delta * 1400.f;
         SetActorRotation(FRotationMatrix::MakeFromX(Velocity).Rotator() + FRotator(0, 0, SpinAngle));
         // Solar sparkle trail
-        if (FMath::FRand() < 0.45f && Mode(this))
+        if (FMath::FRand() < FMath::Min(1.f, Delta * 27.f) && Mode(this))
         {
             FLinearColor SparkCol = (WeaponType == EWeaponType::Brahmastra) ? FLinearColor(1.0f, 0.95f, 0.4f) : FLinearColor(1.0f, 0.85f, 0.2f);
             Mode(this)->Burst(1, GetActorLocation(), SparkCol, 80.f);
@@ -377,20 +397,20 @@ void ALightMagicBolt::Tick(float Delta)
     }
     else if (WeaponType == EWeaponType::Vajra)
     {
-        if (FMath::FRand() < 0.35f && Mode(this))
+        if (FMath::FRand() < FMath::Min(1.f, Delta * 21.f) && Mode(this))
         {
             Mode(this)->Burst(1, GetActorLocation(), FLinearColor(0.2f, 0.85f, 1.0f), 70.f);
         }
     }
     else if (WeaponType == EWeaponType::Trishul)
     {
-        if (FMath::FRand() < 0.35f && Mode(this))
+        if (FMath::FRand() < FMath::Min(1.f, Delta * 21.f) && Mode(this))
         {
             Mode(this)->Burst(1, GetActorLocation(), FLinearColor(1.0f, 0.45f, 0.05f), 70.f);
         }
     }
 
-    if (Life > MaxLife)
+    if (Life >= MaxLife)
     {
         if (BlastRadius > 0.f && Mode(this))
         {
@@ -399,11 +419,13 @@ void ALightMagicBolt::Tick(float Delta)
             Game->PlayFX(Game->FXBoom, GetActorLocation(), 1.1f);
             Game->PlayFX(Game->FXBurst, GetActorLocation(), 0.9f);
             Game->Juice(1.4f, 30, GetActorLocation(), FLinearColor(1.0f, 0.85f, 0.2f));
-            auto* Runner = Cast<ALightRunner>(UGameplayStatics::GetPlayerPawn(this, 0));
+            auto* Runner = Game->CachedRunner ? Game->CachedRunner.Get() : Cast<ALightRunner>(UGameplayStatics::GetPlayerPawn(this, 0));
             for (ALightProp* Prop : Game->Props)
             {
                 if (!IsValid(Prop) || Prop->bCleared) continue;
-                if (FVector::DistSquared(GetActorLocation(), Prop->GetActorLocation()) < FMath::Square(BlastRadius))
+                const FVector PLoc = Prop->GetActorLocation();
+                if (FMath::Abs(PLoc.X - GetActorLocation().X) > BlastRadius) continue;
+                if (FVector::DistSquared(GetActorLocation(), PLoc) < FMath::Square(BlastRadius))
                 {
                     Prop->TakeMagicDamage(WeaponType == EWeaponType::Brahmastra ? 10 : 3, Runner);
                 }
@@ -414,30 +436,51 @@ void ALightMagicBolt::Tick(float Delta)
     }
 
     const FVector CurPos = GetActorLocation();
-    const FVector NextPos = CurPos + Velocity * Delta;
+    const FVector NextPos = CurPos + Velocity * FMath::Min(Delta, MaxLife - Life);
+    Life += Delta;
 
     auto* Game = Mode(this);
     if (Game)
     {
-        auto* Runner = Cast<ALightRunner>(UGameplayStatics::GetPlayerPawn(this, 0));
+        auto* Runner = Game->CachedRunner ? Game->CachedRunner.Get() : Cast<ALightRunner>(UGameplayStatics::GetPlayerPawn(this, 0));
+        TArray<ALightProp*> Candidates;
         for (ALightProp* Prop : Game->Props)
+        {
+            if (!IsValid(Prop) || Prop->bCleared || HitTargets.Contains(Prop)) continue;
+            const FVector PLoc = Prop->GetActorLocation();
+            if (FMath::Abs(PLoc.X - CurPos.X) > 2500.f && FMath::Abs(PLoc.X - NextPos.X) > 2500.f) continue;
+            if (FMath::Abs(PLoc.Y - CurPos.Y) > 800.f) continue;
+            const float Radius = Prop->bGate ? 380.f : 200.f;
+            if (FMath::PointDistToSegmentSquared(PLoc, CurPos, NextPos) < FMath::Square(Radius))
+                Candidates.Add(Prop);
+        }
+        Candidates.Sort([&](const ALightProp& A, const ALightProp& B) {
+            return FVector::DotProduct(A.GetActorLocation() - CurPos, Velocity) <
+                FVector::DotProduct(B.GetActorLocation() - CurPos, Velocity);
+        });
+        for (ALightProp* Prop : Candidates)
         {
             if (!IsValid(Prop) || Prop->bCleared) continue;
             const FVector PropPos = Prop->GetActorLocation();
-            const float DistSq = FVector::DistSquared(NextPos, PropPos);
+            if (HitTargets.Contains(Prop)) continue;
+            const float DistSq = FMath::PointDistToSegmentSquared(PropPos, CurPos, NextPos);
             const float HitRadius = Prop->bGate ? 380.f : 200.f;
             if (DistSq < FMath::Square(HitRadius))
             {
+                HitTargets.Add(Prop);
                 if (WeaponType == EWeaponType::Brahmastra)
                 {
+                    const FVector ImpactPos = FMath::ClosestPointOnSegment(PropPos, CurPos, NextPos);
                     Game->PlayCue(TEXT("/Game/Audio/rocket_boom.rocket_boom"), 1.0f);
-                    Game->PlayFX(Game->FXBoom, NextPos, 1.3f);
-                    Game->PlayFX(Game->FXBurst, NextPos, 1.0f);
-                    Game->Juice(1.5f, 40, NextPos, FLinearColor(1.0f, 0.95f, 0.3f));
+                    Game->PlayFX(Game->FXBoom, ImpactPos, 1.3f);
+                    Game->PlayFX(Game->FXBurst, ImpactPos, 1.0f);
+                    Game->Juice(1.5f, 40, ImpactPos, FLinearColor(1.0f, 0.95f, 0.3f));
                     for (ALightProp* TargetProp : Game->Props)
                     {
                         if (!IsValid(TargetProp) || TargetProp->bCleared) continue;
-                        if (FVector::DistSquared(NextPos, TargetProp->GetActorLocation()) < FMath::Square(BlastRadius))
+                        const FVector TLoc = TargetProp->GetActorLocation();
+                        if (FMath::Abs(TLoc.X - ImpactPos.X) > BlastRadius) continue;
+                        if (FVector::DistSquared(ImpactPos, TLoc) < FMath::Square(BlastRadius))
                         {
                             TargetProp->TakeMagicDamage(10, Runner);
                         }
@@ -638,56 +681,72 @@ void ALightProp::Configure(ETailKind Type, FVector Position, FVector Scale, bool
 
     if (bGate || Type == ETailKind::DemonGate)
     {
-        Mesh->SetStaticMesh(FGameAssets::AsuraGate);
+        Mesh->SetStaticMesh(FGameAssets::AsuraGate ? FGameAssets::AsuraGate : CubeMesh());
         Mesh->SetVisibility(true);
-        SetActorScale3D(FVector(0.024f));
+        float MeshZ = Mesh->GetStaticMesh() ? Mesh->GetStaticMesh()->GetBoundingBox().GetSize().Z : 100.f;
+        const float GateScale = (MeshZ > 1.f) ? (380.f / MeshZ) : 2.8f;
+        SetActorScale3D(FVector(GateScale, GateScale * 1.5f, GateScale));
         Health = 6;
+        Tint(Mesh, FLinearColor(0.20f, 0.05f, 0.22f), 1.2f, true);
         if (EyeGlow)
         {
             EyeGlow->SetLightColor(FLinearColor(1.f, 0.05f, 0.02f));
-            EyeGlow->SetIntensity(6500.f);
-            EyeGlow->SetRelativeLocation(FVector(25.f, 0, 160.f));
+            EyeGlow->SetIntensity(14000.f);
+            EyeGlow->SetAttenuationRadius(900.f);
+            EyeGlow->SetRelativeLocation(FVector(25.f, 0, 180.f));
             EyeGlow->SetVisibility(true);
         }
     }
     else if (Type == ETailKind::Brute)
     {
-        Mesh->SetStaticMesh(FGameAssets::AsuraBrute);
+        Mesh->SetStaticMesh(FGameAssets::AsuraBrute ? FGameAssets::AsuraBrute : CubeMesh());
         Mesh->SetVisibility(true);
-        SetActorScale3D(FVector(0.020f));
+        float MeshZ = Mesh->GetStaticMesh() ? Mesh->GetStaticMesh()->GetBoundingBox().GetSize().Z : 100.f;
+        const float BruteScale = (MeshZ > 1.f) ? (230.f / MeshZ) : 2.2f;
+        SetActorScale3D(FVector(BruteScale, BruteScale * 1.25f, BruteScale));
         Health = 3;
+        Tint(Mesh, FLinearColor(0.35f, 0.05f, 0.08f), 1.6f, true);
         if (EyeGlow)
         {
             EyeGlow->SetLightColor(FLinearColor(1.f, 0.12f, 0.02f));
-            EyeGlow->SetIntensity(4500.f);
+            EyeGlow->SetIntensity(9500.f);
+            EyeGlow->SetAttenuationRadius(700.f);
             EyeGlow->SetRelativeLocation(FVector(0, 20.f, 150.f));
             EyeGlow->SetVisibility(true);
         }
     }
     else if (bExplosive || Type == ETailKind::Fiend)
     {
-        Mesh->SetStaticMesh(FGameAssets::AsuraFiend ? FGameAssets::AsuraFiend : FGameAssets::AsuraMinion);
+        Mesh->SetStaticMesh(FGameAssets::AsuraFiend ? FGameAssets::AsuraFiend : FGameAssets::AsuraMinion ? FGameAssets::AsuraMinion : CubeMesh());
         Mesh->SetVisibility(true);
-        SetActorScale3D(FVector(0.018f));
+        float MeshZ = Mesh->GetStaticMesh() ? Mesh->GetStaticMesh()->GetBoundingBox().GetSize().Z : 100.f;
+        const float FiendScale = (MeshZ > 1.f) ? (150.f / MeshZ) : 1.5f;
+        SetActorScale3D(FVector(FiendScale));
         Health = 1;
+        Tint(Mesh, FLinearColor(1.0f, 0.40f, 0.05f), 3.8f, true);
         if (EyeGlow)
         {
             EyeGlow->SetLightColor(FLinearColor(1.f, 0.45f, 0.05f));
-            EyeGlow->SetIntensity(5000.f);
+            EyeGlow->SetIntensity(11000.f);
+            EyeGlow->SetAttenuationRadius(650.f);
             EyeGlow->SetRelativeLocation(FVector(0, 10.f, 120.f));
             EyeGlow->SetVisibility(true);
         }
     }
     else // Minion demon soldier
     {
-        Mesh->SetStaticMesh(FGameAssets::AsuraMinion);
+        Mesh->SetStaticMesh(FGameAssets::AsuraMinion ? FGameAssets::AsuraMinion : CubeMesh());
         Mesh->SetVisibility(true);
-        SetActorScale3D(FVector(0.018f));
+        float MeshZ = Mesh->GetStaticMesh() ? Mesh->GetStaticMesh()->GetBoundingBox().GetSize().Z : 100.f;
+        const float MinionScale = (MeshZ > 1.f) ? (140.f / MeshZ) : 1.4f;
+        SetActorScale3D(FVector(MinionScale));
         Health = 1;
+        Tint(Mesh, FLinearColor(0.28f, 0.06f, 0.06f), 1.0f, true);
         if (EyeGlow)
         {
             EyeGlow->SetLightColor(FLinearColor(1.f, 0.05f, 0.02f));
-            EyeGlow->SetIntensity(3000.f);
+            EyeGlow->SetIntensity(6500.f);
+            EyeGlow->SetAttenuationRadius(550.f);
             EyeGlow->SetRelativeLocation(FVector(0, 10.f, 120.f));
             EyeGlow->SetVisibility(true);
         }
@@ -698,6 +757,7 @@ void ALightProp::Clear()
 {
     if (bCleared) return;
     bCleared = true;
+    SetActorTickEnabled(false);
     if (FloorStrip) FloorStrip->SetActorHiddenInGame(true);
     if (EyeGlow) EyeGlow->SetVisibility(false);
     SetActorHiddenInGame(true);
@@ -716,9 +776,9 @@ void ALightProp::Explode()
     auto* Game = Mode(this);
     if (Game)
     {
-        Game->ObstaclesBlasted += 2;
-        Game->Award(350 * Game->Flow, TEXT("HELLFIRE FIEND ERADICATED!"));
-        Game->ChariotDistance = FMath::Min(60.f, Game->ChariotDistance + 2.5f);
+        Game->ObstaclesBlasted++;
+        Game->Award(350, TEXT("HELLFIRE FIEND ERADICATED!"));
+        Game->ChariotDistance = FMath::Min(70.f, Game->ChariotDistance + 2.5f);
         Game->PlayCue(TEXT("/Game/Audio/rocket_boom.rocket_boom"), 1.0f);
         Game->PlayCue(TEXT("/Game/Audio/asura_death.asura_death"), 1.0f);
         Game->PlayFX(Game->FXBoom, GetActorLocation() + FVector(0, 0, 40), 0.95f);
@@ -754,9 +814,14 @@ void ALightProp::TakeMagicDamage(int32 Damage, ALightRunner* Shooter)
         return;
     }
     Health -= Damage;
-    HitFlash = 0.14f;
-    Tint(Mesh, FLinearColor(3.f, 1.5f, 1.5f), 5.f);
+    HitFlash = 0.20f;
+    Tint(Mesh, FLinearColor(4.f, 0.4f, 0.4f), 10.f, true);
     auto* Game = Mode(this);
+    if (Game)
+    {
+        Game->Burst(6, GetActorLocation() + FVector(0, 0, 50), FLinearColor(1.f, 0.3f, 0.3f), 240.f);
+        Game->PlayCue(TEXT("/Game/Audio/asura_growl.asura_growl"), 0.85f);
+    }
     if (Health <= 0)
     {
         Clear();
@@ -766,14 +831,14 @@ void ALightProp::TakeMagicDamage(int32 Damage, ALightRunner* Shooter)
             const TCHAR* KillMsg = (Kind == ETailKind::DemonGate || bGate) ? TEXT("MAHISHASURA GATE SMASHED!") :
                                    (Kind == ETailKind::Brute) ? TEXT("RAKSHASA BRUTE VANQUISHED!") :
                                                                 TEXT("ASURA BANISHED!");
-            Game->Award(100 * Game->Flow, KillMsg);
-            Game->ChariotDistance = FMath::Min(60.f, Game->ChariotDistance + 1.2f);
+            Game->Award(100, KillMsg);
+            Game->ChariotDistance = FMath::Min(70.f, Game->ChariotDistance + 1.2f);
             Game->PlayCue(TEXT("/Game/Audio/asura_death.asura_death"), 1.0f);
             Game->PlayCue(TEXT("/Game/Audio/bell_hit.bell_hit"), 0.75f);
-            Game->PlayFX(Game->FXBoom, GetActorLocation() + FVector(0, 0, 40), 0.6f);
-            Game->PlayFX(Game->FXBurst, GetActorLocation() + FVector(0, 0, 40), 0.5f);
-            Game->Burst(15, GetActorLocation() + FVector(0, 0, 40), FLinearColor(0.85f, 0.2f, 0.85f), 380.f);
-            Game->Juice(0.6f, 15, GetActorLocation(), FLinearColor(1.f, 0.75f, 0.2f));
+            Game->PlayFX(Game->FXBoom, GetActorLocation() + FVector(0, 0, 40), 1.0f);
+            Game->PlayFX(Game->FXBurst, GetActorLocation() + FVector(0, 0, 40), 0.8f);
+            Game->Burst(20, GetActorLocation() + FVector(0, 0, 40), FLinearColor(0.95f, 0.2f, 0.2f), 450.f);
+            Game->Juice(0.8f, 20, GetActorLocation(), FLinearColor(1.f, 0.75f, 0.2f));
         }
         if (Shooter)
         {
@@ -795,7 +860,9 @@ void ALightProp::Tick(float Delta)
 {
     Super::Tick(Delta);
     auto* Game = Mode(this);
-    if (!Game || !Game->bRunning || Game->bPaused) return;
+    if (!Game || !Game->bRunning || Game->bPaused || bCleared) return;
+    auto* NearbyRunner = Game->CachedRunner ? Game->CachedRunner.Get() : Cast<ALightRunner>(UGameplayStatics::GetPlayerPawn(this, 0));
+    if (!NearbyRunner || FMath::Abs(GetActorLocation().X - NearbyRunner->GetActorLocation().X) > 4000.f) return;
 
     if (HitFlash > 0.f)
     {
@@ -804,14 +871,14 @@ void ALightProp::Tick(float Delta)
         {
             if (bExplosive)
             {
-                Tint(Mesh, FLinearColor(1.0f, 0.35f, 0.05f), 3.5f);
+                Tint(Mesh, FLinearColor(1.0f, 0.40f, 0.05f), 3.8f, true);
             }
             else
             {
-                const FLinearColor RestColor = (bGate || Kind == ETailKind::DemonGate) ? FLinearColor(0.10f, 0.09f, 0.12f) :
-                                               (Kind == ETailKind::Brute) ? FLinearColor(0.12f, 0.04f, 0.08f) :
-                                                                            FLinearColor(0.22f, 0.06f, 0.06f);
-                Tint(Mesh, RestColor, 0.2f);
+                const FLinearColor RestColor = (bGate || Kind == ETailKind::DemonGate) ? FLinearColor(0.20f, 0.05f, 0.22f) :
+                                               (Kind == ETailKind::Brute) ? FLinearColor(0.35f, 0.05f, 0.08f) :
+                                                                            FLinearColor(0.28f, 0.06f, 0.06f);
+                Tint(Mesh, RestColor, 1.2f, true);
             }
         }
     }
@@ -849,7 +916,7 @@ void ALightProp::Tick(float Delta)
         Mesh->SetPhysicsLinearVelocity(FVector::ZeroVector);
         Mesh->SetPhysicsAngularVelocityInDegrees(FVector::ZeroVector);
     }
-    auto* Runner = Cast<ALightRunner>(UGameplayStatics::GetPlayerPawn(this, 0));
+    auto* Runner = Game->CachedRunner ? Game->CachedRunner.Get() : Cast<ALightRunner>(UGameplayStatics::GetPlayerPawn(this, 0));
     if (Kind == ETailKind::Cart && Runner && FMath::Abs(Position.X - Runner->GetActorLocation().X) < 2800)
     {
         const bool Hard = Game->Surge > 0 || Game->Phase == EFeelPhase::Chaos || (Game->Flow >= 4 && Game->Bells == 3);
@@ -921,8 +988,9 @@ void ALightCitizen::Tick(float Delta)
 {
     Super::Tick(Delta);
     auto* Game = Mode(this);
-    auto* Runner = Cast<ALightRunner>(UGameplayStatics::GetPlayerPawn(this, 0));
-    if (!Game || !Game->bRunning || !Runner) return;
+    if (!Game || !Game->bRunning) return;
+    auto* Runner = Game->CachedRunner ? Game->CachedRunner.Get() : Cast<ALightRunner>(UGameplayStatics::GetPlayerPawn(this, 0));
+    if (!Runner) return;
     Bob += Delta * (Game->Surge > 0 ? 16.f : 6.f);
     FVector Location = Home;
     const FVector RunnerPos = Runner->GetActorLocation();
@@ -938,9 +1006,11 @@ void ALightCitizen::Tick(float Delta)
     Location.Z += FMath::Sin(Bob * 1.5f) * (bNearRunner ? 16.f : 6.f);
     SetActorLocation(Location);
 
-    // Toss flower petals / gulal when runner passes by
-    if (bNearRunner && FMath::FRand() < 0.12f)
+    // Toss flower petals / gulal when runner passes by (frame-rate steady pacing)
+    Dash += Delta;
+    if (bNearRunner && Dash >= 0.16f)
     {
+        Dash = 0.f;
         Game->Burst(1, Location + FVector(0, 0, 70), FLinearColor(0.98f, 0.45f, 0.15f), 120.f);
     }
 
@@ -1027,7 +1097,7 @@ void ALightRath::Drive(float X, float Panic, float Delta)
     }
 
     // High panic: divine golden procession aura sparks
-    if (Panic > 0.35f && FMath::FRand() < 0.35f)
+    if (Panic > 0.35f && FMath::FRand() < FMath::Min(1.f, Delta * 21.f))
     {
         if (auto* Game = Mode(this))
             Game->Burst(2, GetActorLocation() + FVector(FMath::FRandRange(-200.f, 200.f), FMath::FRandRange(-250.f, 250.f), 20.f), FLinearColor(1.f, 0.78f, 0.2f), 140.f);
@@ -1053,10 +1123,11 @@ ALightRunner::ALightRunner()
     Boom->bInheritYaw = false;
     Boom->bInheritRoll = false;
     Boom->bDoCollisionTest = true;
-    Boom->ProbeSize = 22.f;
+    Boom->ProbeSize = 12.f;
     Boom->bEnableCameraLag = true;
     Boom->CameraLagSpeed = 12.f;
-    Boom->bEnableCameraRotationLag = false;
+    Boom->bEnableCameraRotationLag = true;
+    Boom->CameraRotationLagSpeed = 14.f;
     Boom->TargetOffset = FVector(40.f, 0.f, 75.f);
     Camera = CreateDefaultSubobject<UCameraComponent>(TEXT("Camera"));
     Camera->SetupAttachment(Boom, USpringArmComponent::SocketName);
@@ -1118,9 +1189,9 @@ void ALightRunner::SetupPlayerInputComponent(UInputComponent* Input)
     auto& Pause = Input->BindAction("PauseRun", IE_Pressed, this, &ALightRunner::PauseRun);
     Pause.bExecuteWhenPaused = true;
     Input->BindKey(EKeys::LeftMouseButton, IE_Pressed, this, &ALightRunner::FireMagic);
-    Input->BindKey(EKeys::RightMouseButton, IE_Pressed, this, &ALightRunner::FireMagic);
-    Input->BindKey(EKeys::LeftShift, IE_Pressed, this, &ALightRunner::FireMagic);
-    Input->BindKey(EKeys::RightShift, IE_Pressed, this, &ALightRunner::FireMagic);
+    Input->BindKey(EKeys::RightMouseButton, IE_Pressed, this, &ALightRunner::PressAttack);
+    Input->BindKey(EKeys::LeftShift, IE_Pressed, this, &ALightRunner::PressAttack);
+    Input->BindKey(EKeys::RightShift, IE_Pressed, this, &ALightRunner::PressAttack);
     Input->BindKey(EKeys::One, IE_Pressed, this, &ALightRunner::SelectSlot1);
     Input->BindKey(EKeys::Two, IE_Pressed, this, &ALightRunner::SelectSlot2);
     Input->BindKey(EKeys::Three, IE_Pressed, this, &ALightRunner::SelectSlot3);
@@ -1128,13 +1199,7 @@ void ALightRunner::SetupPlayerInputComponent(UInputComponent* Input)
     Input->BindKey(EKeys::Q, IE_Pressed, this, &ALightRunner::PrevWeapon);
     Input->BindKey(EKeys::E, IE_Pressed, this, &ALightRunner::NextWeapon);
     Input->BindKey(EKeys::T, IE_Pressed, this, &ALightRunner::ToggleAutoFire);
-    Input->BindKey(EKeys::F, IE_Pressed, this, &ALightRunner::ToggleAutoFire);
-    Input->BindKey(EKeys::SpaceBar, IE_Pressed, this, &ALightRunner::PressJump);
-    Input->BindKey(EKeys::SpaceBar, IE_Released, this, &ALightRunner::ReleaseJump);
-    Input->BindKey(EKeys::Enter, IE_Pressed, this, &ALightRunner::BeginRun);
-    Input->BindKey(EKeys::R, IE_Pressed, this, &ALightRunner::Retry);
-    auto& EscKey = Input->BindKey(EKeys::Escape, IE_Pressed, this, &ALightRunner::PauseRun);
-    EscKey.bExecuteWhenPaused = true;
+    Input->BindKey(EKeys::F, IE_Pressed, this, &ALightRunner::PressAttack);
     auto& PKey = Input->BindKey(EKeys::P, IE_Pressed, this, &ALightRunner::PauseRun);
     PKey.bExecuteWhenPaused = true;
 }
@@ -1142,48 +1207,63 @@ void ALightRunner::SetupPlayerInputComponent(UInputComponent* Input)
 void ALightRunner::SelectWeapon(EWeaponType NewType)
 {
     CurrentWeapon = NewType;
+    WeaponLevel = WeaponLevels[FMath::Clamp(static_cast<int32>(CurrentWeapon), 0, 3)];
     FGameAssets::EnsureLoaded();
     UStaticMesh* AstraModel = nullptr;
     const TCHAR* WName = TEXT("INDRA'S VAJRA");
-    FVector WScale(0.016f);
+    FLinearColor WepGlowCol = FLinearColor(0.2f, 0.85f, 1.0f);
+    const TCHAR* CuePath = TEXT("/Game/Audio/astra_vajra.astra_vajra");
+    float DesiredScale = 52.f;
 
     if (CurrentWeapon == EWeaponType::Vajra)
     {
         AstraModel = FGameAssets::AstraVajra ? FGameAssets::AstraVajra : FGameAssets::GunAK47;
-        WName = TEXT("INDRA'S VAJRA (DIVINE LIGHTNING)");
-        WScale = FGameAssets::AstraVajra ? FVector(0.016f) : FVector(0.85f);
+        WName = TEXT("INDRA'S VAJRA [PIERCING LIGHTNING]");
+        WepGlowCol = FLinearColor(0.2f, 0.85f, 1.0f);
+        CuePath = TEXT("/Game/Audio/astra_vajra.astra_vajra");
+        DesiredScale = 54.f;
     }
     else if (CurrentWeapon == EWeaponType::Trishul)
     {
         AstraModel = FGameAssets::AstraTrident ? FGameAssets::AstraTrident : FGameAssets::GunShotgun;
-        WName = TEXT("SHIVA'S AGNI TRISHUL (HOLY FIRE PRONGS)");
-        WScale = FGameAssets::AstraTrident ? FVector(0.014f) : FVector(0.85f);
+        WName = TEXT("SHIVA'S AGNI TRISHUL [3-LANE HOLY FIRE]");
+        WepGlowCol = FLinearColor(1.0f, 0.50f, 0.05f);
+        CuePath = TEXT("/Game/Audio/astra_trishul.astra_trishul");
+        DesiredScale = 58.f;
     }
     else if (CurrentWeapon == EWeaponType::Chakra)
     {
         AstraModel = FGameAssets::AstraChakra ? FGameAssets::AstraChakra : FGameAssets::GunRocketLauncher;
-        WName = TEXT("SUDARSHANA CHAKRA (SOLAR DISC)");
-        WScale = FGameAssets::AstraChakra ? FVector(0.012f) : FVector(0.85f);
+        WName = TEXT("SUDARSHANA CHAKRA [SOLAR DISC]");
+        WepGlowCol = FLinearColor(1.0f, 0.88f, 0.15f);
+        CuePath = TEXT("/Game/Audio/astra_chakra.astra_chakra");
+        DesiredScale = 48.f;
     }
     else // Brahmastra
     {
         AstraModel = FGameAssets::AstraChakra ? FGameAssets::AstraChakra : FGameAssets::GunFlamethrower;
-        WName = TEXT("BRAHMASTRA (CELESTIAL OBLITERATION)");
-        WScale = FGameAssets::AstraChakra ? FVector(0.024f) : FVector(1.0f);
+        WName = TEXT("BRAHMASTRA [CATACLYSM OBLITERATION]");
+        WepGlowCol = FLinearColor(1.5f, 1.3f, 0.6f);
+        CuePath = TEXT("/Game/Audio/jingle_surge.jingle_surge");
+        DesiredScale = 68.f;
     }
 
     if (WeaponMesh)
     {
         WeaponMesh->SetStaticMesh(AstraModel);
         WeaponMesh->SetVisibility(AstraModel != nullptr);
-        WeaponMesh->SetRelativeScale3D(WScale);
+        float MeshSize = (AstraModel) ? AstraModel->GetBoundingBox().GetSize().GetMax() : 100.f;
+        float FinalWScale = (MeshSize > 1.f) ? (DesiredScale / MeshSize) : 0.85f;
+        WeaponMesh->SetRelativeScale3D(FVector(FinalWScale));
+        Tint(WeaponMesh, WepGlowCol, 3.5f, true);
     }
 
     if (auto* Game = Mode(this))
     {
-        Game->Cue = FString::Printf(TEXT("INVOKED: %s"), WName);
-        Game->CueUntil = Game->Elapsed + 0.9f;
-        Game->PlayCue(TEXT("/Game/Audio/latch.latch"), 0.8f);
+        Game->Cue = FString::Printf(TEXT("INVOKED: %s (TIER %d)"), WName, WeaponLevel);
+        Game->CueUntil = Game->Elapsed + 1.2f;
+        Game->PlayCue(CuePath, 1.0f);
+        FOVKick = 2.5f;
     }
 }
 
@@ -1214,6 +1294,15 @@ void ALightRunner::ToggleAutoFire()
     }
 }
 
+float ALightRunner::GetFireInterval() const
+{
+    static const float Intervals[4][4] = {
+        {0.16f, 0.13f, 0.11f, 0.09f}, {0.32f, 0.28f, 0.24f, 0.20f},
+        {0.22f, 0.18f, 0.15f, 0.12f}, {0.55f, 0.48f, 0.42f, 0.36f}
+    };
+    return Intervals[FMath::Clamp(static_cast<int32>(CurrentWeapon), 0, 3)][FMath::Clamp(WeaponLevel, 1, 4) - 1];
+}
+
 void ALightRunner::FireMagic()
 {
     auto* Game = Mode(this);
@@ -1221,6 +1310,8 @@ void ALightRunner::FireMagic()
     UWorld* World = GetWorld();
     if (!World) return;
 
+    if (FireCooldown > 0.f) return;
+    FireCooldown = GetFireInterval();
     const FVector Muzzle = GetActorLocation() + FVector(65.f, 15.f, 12.f);
 
     auto SpawnOrGetBolt = [&]() -> ALightMagicBolt* {
@@ -1438,13 +1529,27 @@ void ALightRunner::PressAttack()
                 Game->PlayFX(Game->FXBurst, Prop->Home + FVector(0, 0, 40), 0.5f);
                 Game->PlayFX(Game->FXBoom, Prop->Home + FVector(0, 0, 30), 0.4f);
                 UGameplayStatics::SetGlobalTimeDilation(this, 0.05f);
-                GetWorldTimerManager().SetTimer(Game->SlowMoTimer, Game, &ALightGameMode::RestoreTime, 0.08f, false);
+                GetWorldTimerManager().SetTimer(Game->SlowMoTimer, Game, &ALightGameMode::RestoreTime, 0.004f, false);
                 Trauma = 1.0f;
                 FOVKick = 12.f;
                 bHit = true;
             }
-            else if (Prop->Mesh && Prop->Mesh->IsSimulatingPhysics())
+            else if (Prop->Kind == ETailKind::Minion || Prop->Kind == ETailKind::Brute || Prop->Kind == ETailKind::Fiend || Prop->Kind == ETailKind::DemonGate)
             {
+                // DIRECT MELEE STRIKE ON DEMON!
+                Prop->TakeMagicDamage(4, this);
+                Game->PlayCue(TEXT("/Game/Audio/wood_hit.wood_hit"), 0.9f);
+                Game->PlayCue(TEXT("/Game/Audio/whip.whip"), 1.0f);
+                Game->Burst(10, Prop->GetActorLocation(), FLinearColor(1.f, 0.6f, 0.1f), 350.f);
+                bHit = true;
+            }
+            else if (Prop->Mesh)
+            {
+                if (!Prop->Mesh->IsSimulatingPhysics())
+                {
+                    Prop->Mesh->SetSimulatePhysics(true);
+                    Prop->Mesh->SetCollisionProfileName(TEXT("PhysicsActor"));
+                }
                 // VIOLENTLY SMACK OBSTACLE SIDEWAYS OFF THE ROAD!
                 const float SideSign = (Prop->GetActorLocation().Y - GetActorLocation().Y >= 0.f) ? 1.f : -1.f;
                 FVector BlastImpulse = FVector(600.f, SideSign * 2400.f, 480.f);
@@ -1462,7 +1567,7 @@ void ALightRunner::PressAttack()
         if (UGameplayStatics::GetGlobalTimeDilation(this) > 0.5f)
         {
             UGameplayStatics::SetGlobalTimeDilation(this, 0.03f);
-            GetWorldTimerManager().SetTimer(Game->SlowMoTimer, Game, &ALightGameMode::RestoreTime, 0.04f, false);
+            GetWorldTimerManager().SetTimer(Game->SlowMoTimer, Game, &ALightGameMode::RestoreTime, 0.0012f, false);
         }
         Game->Shake = FMath::Max(Game->Shake, 1.0f);
     }
@@ -1526,65 +1631,18 @@ void ALightRunner::Tick(float Delta)
     AttackTime = FMath::Max(0.f, AttackTime - Delta);
     float EffectiveSteer = Steering;
     float EffectivePace = Pace;
-    bool bWantTail = false;
-    if (APlayerController* PC = Cast<APlayerController>(GetController()))
-    {
-        if (FMath::IsNearlyZero(EffectiveSteer))
-        {
-            if (PC->IsInputKeyDown(EKeys::A) || PC->IsInputKeyDown(EKeys::Left)) EffectiveSteer = -1.f;
-            else if (PC->IsInputKeyDown(EKeys::D) || PC->IsInputKeyDown(EKeys::Right)) EffectiveSteer = 1.f;
-        }
-        if (FMath::IsNearlyZero(EffectivePace))
-        {
-            if (PC->IsInputKeyDown(EKeys::W) || PC->IsInputKeyDown(EKeys::Up)) EffectivePace = 1.f;
-            else if (PC->IsInputKeyDown(EKeys::S) || PC->IsInputKeyDown(EKeys::Down)) EffectivePace = -1.f;
-        }
-        bWantTail = PC->IsInputKeyDown(EKeys::RightMouseButton) || PC->IsInputKeyDown(EKeys::E)
-            || PC->IsInputKeyDown(EKeys::LeftShift) || PC->IsInputKeyDown(EKeys::RightShift);
-
-        if (PC->WasInputKeyJustPressed(EKeys::LeftMouseButton) || PC->WasInputKeyJustPressed(EKeys::F) || PC->WasInputKeyJustPressed(EKeys::Q))
-        {
-            PressAttack();
-        }
-    }
-    FireCooldown -= Delta;
+    FireCooldown = FMath::Max(0.f, FireCooldown - Delta);
     bool bFirePressed = false;
     if (APlayerController* PC = Cast<APlayerController>(GetController()))
     {
-        bFirePressed = PC->IsInputKeyDown(EKeys::LeftMouseButton) || PC->IsInputKeyDown(EKeys::SpaceBar) ||
-                       PC->IsInputKeyDown(EKeys::F) || PC->IsInputKeyDown(EKeys::LeftShift) ||
-                       PC->IsInputKeyDown(EKeys::RightMouseButton) || PC->IsInputKeyDown(EKeys::E);
+        bFirePressed = PC->IsInputKeyDown(EKeys::LeftMouseButton);
     }
-    if ((bAutoFire || bFirePressed) && Game->bRunning && !Game->bPaused)
-    {
-        float Interval = 0.16f;
-        if (CurrentWeapon == EWeaponType::Vajra)
-        {
-            Interval = (WeaponLevel == 1) ? 0.16f : (WeaponLevel == 2) ? 0.13f : (WeaponLevel == 3) ? 0.11f : 0.09f;
-        }
-        else if (CurrentWeapon == EWeaponType::Trishul)
-        {
-            Interval = (WeaponLevel == 1) ? 0.32f : (WeaponLevel == 2) ? 0.28f : (WeaponLevel == 3) ? 0.24f : 0.20f;
-        }
-        else if (CurrentWeapon == EWeaponType::Chakra)
-        {
-            Interval = (WeaponLevel == 1) ? 0.22f : (WeaponLevel == 2) ? 0.18f : (WeaponLevel == 3) ? 0.15f : 0.12f;
-        }
-        else // Brahmastra
-        {
-            Interval = (WeaponLevel == 1) ? 0.55f : (WeaponLevel == 2) ? 0.48f : (WeaponLevel == 3) ? 0.42f : 0.36f;
-        }
-        if (FireCooldown <= 0.f)
-        {
-            FireMagic();
-            FireCooldown = Interval;
-        }
-    }
+    if (bAutoFire || bFirePressed) FireMagic();
 
     Movement->MaxWalkSpeed = 920.f + (Game->Surge > 0 ? 220.f : 0.f) + Momentum * 0.08f;
     Movement->MaxAcceleration = 2800.f;
     Movement->BrakingDecelerationWalking = 900.f;
-    Movement->GroundFriction = Position.X > 60000 && Position.X < 120000 ? 2.8f : 4.8f;
+    Movement->GroundFriction = Position.X >= 42000 && Position.X < 78000 ? 2.8f : 4.8f;
     AddMovementInput(FVector(1, 0, 0), 1.f + EffectivePace * 0.28f);
     AddMovementInput(FVector(0, 1, 0), EffectiveSteer);
     FacingYaw = FMath::FInterpTo(FacingYaw, EffectiveSteer * 18.f, Delta, 8.f);
@@ -1644,10 +1702,12 @@ void ALightRunner::Tick(float Delta)
         {
             Power->bCollected = true;
             Power->SetActorHiddenInGame(true);
+            Power->SetActorTickEnabled(false);
+            if (Power->Light) Power->Light->SetVisibility(false);
             if (Power->Type == EPowerUpType::WeaponVajra)
             {
+                WeaponLevels[0] = FMath::Min(4, WeaponLevels[0] + 1);
                 SelectWeapon(EWeaponType::Vajra);
-                WeaponLevel = FMath::Min(4, WeaponLevel + 1);
                 Game->Award(500, FString::Printf(TEXT("INDRA'S VAJRA AWAKENED! TIER %d"), WeaponLevel));
                 Game->PlayCue(TEXT("/Game/Audio/jingle_surge.jingle_surge"), 1.0f);
                 Game->PlayCue(TEXT("/Game/Audio/astra_vajra.astra_vajra"), 1.0f);
@@ -1657,8 +1717,8 @@ void ALightRunner::Tick(float Delta)
             }
             else if (Power->Type == EPowerUpType::WeaponTrishul)
             {
+                WeaponLevels[1] = FMath::Min(4, WeaponLevels[1] + 1);
                 SelectWeapon(EWeaponType::Trishul);
-                WeaponLevel = FMath::Min(4, WeaponLevel + 1);
                 Game->Award(500, FString::Printf(TEXT("SHIVA'S AGNI TRISHUL AWAKENED! TIER %d"), WeaponLevel));
                 Game->PlayCue(TEXT("/Game/Audio/jingle_surge.jingle_surge"), 1.0f);
                 Game->PlayCue(TEXT("/Game/Audio/astra_trishul.astra_trishul"), 1.0f);
@@ -1668,8 +1728,8 @@ void ALightRunner::Tick(float Delta)
             }
             else if (Power->Type == EPowerUpType::WeaponChakra)
             {
+                WeaponLevels[2] = FMath::Min(4, WeaponLevels[2] + 1);
                 SelectWeapon(EWeaponType::Chakra);
-                WeaponLevel = FMath::Min(4, WeaponLevel + 1);
                 Game->Award(500, FString::Printf(TEXT("SUDARSHANA CHAKRA AWAKENED! TIER %d"), WeaponLevel));
                 Game->PlayCue(TEXT("/Game/Audio/jingle_surge.jingle_surge"), 1.0f);
                 Game->PlayCue(TEXT("/Game/Audio/astra_chakra.astra_chakra"), 1.0f);
@@ -1787,7 +1847,7 @@ void ALightRunner::Landed(const FHitResult& Hit)
     {
         Momentum *= 0.8f; Game->Stumble(); Game->Shake = 0.9f;
     }
-    if (GetActorLocation().X > 60000.f && GetActorLocation().X < 120000.f)
+    if (GetActorLocation().X >= 42000.f && GetActorLocation().X < 78000.f)
     {
         for (ALightProp* Prop : Game->Props)
         {
@@ -1872,7 +1932,15 @@ void ALightGameMode::PlayCue(const TCHAR* SoftPath, float Vol)
             SoundCache.Add(SoftPath, Sound);
         }
     }
-    if (IsValid(Sound)) UGameplayStatics::PlaySound2D(this, Sound, Vol);
+    if (IsValid(Sound))
+    {
+        static TMap<FString, double> LastPlayed;
+        const double Now = FPlatformTime::Seconds();
+        const double* Previous = LastPlayed.Find(SoftPath);
+        if (Previous && Now - *Previous < 0.06) return;
+        LastPlayed.Add(SoftPath, Now);
+        UGameplayStatics::PlaySound2D(this, Sound, Vol);
+    }
 }
 
 void ALightGameMode::PlayFX(UNiagaraSystem* System, FVector At, float Scale)
@@ -1898,6 +1966,8 @@ void ALightGameMode::BeginPlay()
         Bolts.Add(Bolt);
     }
     ChariotDistance = 32.f;
+    ProcessionX = -3200.f;
+    ProcessionPause = 0.f;
     ObstaclesBlasted = 0;
     MissedObstacles = 0;
 
@@ -2054,33 +2124,33 @@ void ALightGameMode::BeginPlay()
         }
         else
         {
-            // Wave A at X + 1500:
+            // Wave A at X + 1750 (spaced cleanly past the X + 1500 Archway):
             const int32 PatternA = Segment % 3;
             if (PatternA == 0)
             {
                 // Hellfire Fiend on Left lane, Asura Minion on Right lane
                 auto* P1 = World->SpawnActor<ALightProp>();
-                P1->Configure(ETailKind::Fiend, FVector(X + 1500, -300.f, 70), FVector(1.4f), false, true /* Explosive */);
+                P1->Configure(ETailKind::Fiend, FVector(X + 1750.f, -300.f, 70), FVector(1.4f), false, true /* Explosive */);
                 Props.Add(P1);
                 auto* P2 = World->SpawnActor<ALightProp>();
-                P2->Configure(ETailKind::Minion, FVector(X + 1500, 300.f, 70), FVector(1.4f), false, false);
+                P2->Configure(ETailKind::Minion, FVector(X + 1750.f, 300.f, 70), FVector(1.4f), false, false);
                 Props.Add(P2);
             }
             else if (PatternA == 1)
             {
                 // Charging Rakshasa Brute charging at the runner in Center!
                 auto* Brute = World->SpawnActor<ALightProp>();
-                Brute->Configure(ETailKind::Brute, FVector(X + 1500, 0.f, 80), FVector(1.8f), false, false, -340.f /* Charging speed */);
+                Brute->Configure(ETailKind::Brute, FVector(X + 1750.f, 0.f, 80), FVector(1.8f), false, false, -340.f /* Charging speed */);
                 Props.Add(Brute);
             }
             else
             {
                 // Left Hellfire Fiend & Center Asura Minion
                 auto* P1 = World->SpawnActor<ALightProp>();
-                P1->Configure(ETailKind::Fiend, FVector(X + 1500, -300.f, 70), FVector(1.4f), false, true /* Explosive */);
+                P1->Configure(ETailKind::Fiend, FVector(X + 1750.f, -300.f, 70), FVector(1.4f), false, true /* Explosive */);
                 Props.Add(P1);
                 auto* P2 = World->SpawnActor<ALightProp>();
-                P2->Configure(ETailKind::Minion, FVector(X + 1500, 0.f, 70), FVector(1.4f), false, false);
+                P2->Configure(ETailKind::Minion, FVector(X + 1750.f, 0.f, 70), FVector(1.4f), false, false);
                 Props.Add(P2);
             }
 
@@ -2264,13 +2334,18 @@ void ALightGameMode::BeginPlay()
     {
         Runner->SetActorLocation(FVector(100, 0, 100));
     }
-    StartRun();
+    ApplyLook(0.f);
+    if (UGameplayStatics::HasOption(OptionsString, TEXT("retry"))) StartRun();
 }
 
 void ALightGameMode::ApplyLook(float PlayerX)
 {
-    const bool Storm = PlayerX > 60000.f && PlayerX < 120000.f;
-    const bool Twilight = PlayerX >= 120000.f;
+    // Match the authored segment boundaries (7 and 13 out of 18).
+    const bool Storm = PlayerX >= 42000.f && PlayerX < 78000.f;
+    const bool Twilight = PlayerX >= 78000.f;
+    const int32 NewBand = Twilight ? 2 : Storm ? 1 : 0;
+    if (LookBand == NewBand) return;
+    LookBand = NewBand;
     if (Sun)
     {
         Sun->SetActorRotation(Storm ? FRotator(-28, -40, 0) : Twilight ? FRotator(-18, -10, 0) : FRotator(-45, -30, 0));
@@ -2376,7 +2451,6 @@ void ALightGameMode::TickDirector(float Delta, ALightRunner* Runner)
         {
             Phase = EFeelPhase::Chaos;
             PhaseLeft = Struggling ? 8.f : 8.f + FMath::FRand() * 7.f;
-            Cue = TEXT(""); CueUntil = 0.f;
             bChaosDrop = false; bCrowdDash = false;
             Shake = FMath::Max(Shake, 0.35f);
         }
@@ -2384,7 +2458,6 @@ void ALightGameMode::TickDirector(float Delta, ALightRunner* Runner)
         {
             Phase = EFeelPhase::Release;
             PhaseLeft = 3.f + FMath::FRand() * 5.f;
-            Cue = TEXT(""); CueUntil = 0.f;
             Burst(10, Runner->GetActorLocation(), FLinearColor(1.f, 0.8f, 0.3f), 500.f);
         }
         else
@@ -2396,10 +2469,12 @@ void ALightGameMode::TickDirector(float Delta, ALightRunner* Runner)
     if (Phase == EFeelPhase::Chaos && Dominating && !bChaosDrop)
     {
         bChaosDrop = true;
-        auto* Basket = GetWorld()->SpawnActor<ALightProp>();
-        const FVector Ahead = Runner->GetActorLocation() + FVector(1600.f, FMath::RandRange(-180.f, 180.f), 720.f);
-        Basket->Configure(ETailKind::Light, Ahead, FVector(0.55f));
-        Props.Add(Basket);
+        if (auto* Basket = GetWorld()->SpawnActor<ALightProp>())
+        {
+            const FVector Ahead = Runner->GetActorLocation() + FVector(1600.f, FMath::RandRange(-180.f, 180.f), 720.f);
+            Basket->Configure(ETailKind::Light, Ahead, FVector(0.55f));
+            Props.Add(Basket);
+        }
     }
     if (Phase == EFeelPhase::Chaos && !bCrowdDash && Citizens.Num() > 0)
     {
@@ -2459,10 +2534,15 @@ void ALightGameMode::Award(int32 Points, const FString& Message)
     MaxFlow = FMath::Max(MaxFlow, Flow);
     Score += Points * Flow * (Surge > 0 ? 2 : 1);
     FlowExpiry = Elapsed + 8;
-    if (!Message.IsEmpty()) { Cue = Message; CueUntil = Elapsed + 0.7f; }
+    const bool Important = Message.Contains(TEXT("AWAKENED")) || Message.Contains(TEXT("BELL"));
+    if (!Message.IsEmpty() && (Important || Elapsed >= CueUntil))
+    {
+        Cue = Message;
+        CueUntil = Elapsed + (Important ? 1.8f : 0.7f);
+    }
     if (Chain == 24)
     {
-        Surge = 8; Cue = TEXT("SEVA SURGE");
+        Surge = 8; Cue = TEXT("SEVA SURGE"); CueUntil = Elapsed + 1.8f;
         PlayCue(TEXT("/Game/Audio/jingle_surge.jingle_surge"), 0.95f);
         if (auto* Mouse = Cast<ALightRunner>(UGameplayStatics::GetPlayerPawn(this, 0)))
         {
@@ -2474,7 +2554,7 @@ void ALightGameMode::Award(int32 Points, const FString& Message)
             Juice(1.4f, 28, Runner->GetActorLocation(), FLinearColor(1.f, 0.85f, 0.2f));
         // Brief epic slow-mo moment
         UGameplayStatics::SetGlobalTimeDilation(this, 0.25f);
-        GetWorldTimerManager().SetTimer(SlowMoTimer, this, &ALightGameMode::RestoreTime, 0.12f, false);
+        GetWorldTimerManager().SetTimer(SlowMoTimer, this, &ALightGameMode::RestoreTime, 0.03f, false);
     }
     if (auto* Runner = Cast<ALightRunner>(UGameplayStatics::GetPlayerPawn(this, 0)))
     {
@@ -2485,7 +2565,7 @@ void ALightGameMode::Award(int32 Points, const FString& Message)
 void ALightGameMode::Stumble()
 {
     Chain = 0; Flow = 1; Surge = 0;
-    Cue = TEXT(""); CueUntil = 0.f;
+    Cue = TEXT("STUMBLED - FLOW LOST"); CueUntil = Elapsed + 1.4f;
     Shake = FMath::Max(Shake, 0.35f);
     VignetteKick = 0.35f;
     PlayCue(TEXT("/Game/Audio/wood_heavy.wood_heavy"), 0.7f);
@@ -2501,16 +2581,35 @@ void ALightGameMode::Tick(float Delta)
 {
     Super::Tick(Delta);
     if (!bRunning || bPaused) return;
-    auto* Runner = Cast<ALightRunner>(UGameplayStatics::GetPlayerPawn(this, 0));
+    if (!CachedRunner)
+    {
+        CachedRunner = Cast<ALightRunner>(UGameplayStatics::GetPlayerPawn(this, 0));
+    }
+    auto* Runner = CachedRunner.Get();
     if (!Runner) return;
     Elapsed += Delta; Surge = FMath::Max(0.f, Surge - Delta);
     IntroLeft = FMath::Max(0.f, IntroLeft - Delta);
 
-    // Dynamic Rath chase speed: starts at 0.95m/s and accelerates up to 2.3m/s toward the end of the run!
+    if (!bPaused && UGameplayStatics::GetGlobalTimeDilation(this) < 0.95f)
+    {
+        if (!GetWorldTimerManager().IsTimerActive(SlowMoTimer))
+        {
+            UGameplayStatics::SetGlobalTimeDilation(this, 1.f);
+        }
+    }
+
+    // Independent Rath pursuit simulation:
     const float ProgressRatio = FMath::Clamp(Runner->GetActorLocation().X / FinishX, 0.f, 1.f);
-    const float CreepRate = 0.95f + ProgressRatio * 1.35f;
-    ChariotDistance = FMath::Max(0.f, ChariotDistance - Delta * CreepRate);
-    ProcessionX = Runner->GetActorLocation().X - ChariotDistance * 100.f;
+    if (ProcessionPause > 0.f)
+    {
+        ProcessionPause -= Delta;
+    }
+    else
+    {
+        const float RathSpeed = 820.f + ProgressRatio * 260.f; // 8.2 m/s up to 10.8 m/s
+        ProcessionX += RathSpeed * Delta;
+    }
+    ChariotDistance = FMath::Clamp((Runner->GetActorLocation().X - ProcessionX) / 100.f, 0.f, 70.f);
 
     // High tension sound cues:
     GrindCooldown -= Delta;
@@ -2566,7 +2665,9 @@ void ALightGameMode::Tick(float Delta)
         if (ProcessionX >= Prop->Home.X - 400.f)
         {
             Bells--; Prop->Clear();
+            ProcessionPause = 2.0f;
             ChariotDistance = FMath::Max(0.f, ChariotDistance - 8.f);
+            ProcessionX = Runner->GetActorLocation().X - ChariotDistance * 100.f;
             Cue = TEXT("RATH COLLISION! BELL CRACKED!"); CueUntil = Elapsed + 2.0f;
             PlayCue(TEXT("/Game/Audio/wood_heavy.wood_heavy"), 1.0f);
             PlayCue(TEXT("/Game/Audio/bell_hit.bell_hit"), 1.0f);
@@ -2578,7 +2679,7 @@ void ALightGameMode::Tick(float Delta)
             PlayFX(FXBoom, Prop->Home + FVector(0, 0, 60), 0.8f);
             PlayFX(FXBurst, Prop->Home + FVector(0, 0, 80), 0.6f);
             UGameplayStatics::SetGlobalTimeDilation(this, 0.06f);
-            GetWorldTimerManager().SetTimer(SlowMoTimer, this, &ALightGameMode::RestoreTime, 0.10f, false);
+            GetWorldTimerManager().SetTimer(SlowMoTimer, this, &ALightGameMode::RestoreTime, 0.006f, false);
             if (Bells <= 0) { Finish(false); return; }
             break;
         }
@@ -2610,6 +2711,8 @@ void ALightGameMode::Finish(bool Won)
 {
     if (bFinished) return;
     if (auto* Mouse = Cast<ALightRunner>(UGameplayStatics::GetPlayerPawn(this, 0))) Mouse->CancelTail();
+    GetWorldTimerManager().ClearTimer(SlowMoTimer);
+    for (ALightMagicBolt* Bolt : Bolts) if (IsValid(Bolt)) Bolt->Deactivate();
     bRunning = false; bFinished = true; bWon = Won;
     UGameplayStatics::SetGlobalTimeDilation(this, 1.f);
     Score += Won ? (Bells * 1000 + ObstaclesBlasted * 150) : (ObstaclesBlasted * 100);
@@ -2617,7 +2720,7 @@ void ALightGameMode::Finish(bool Won)
     auto* Save = Cast<ULightSave>(UGameplayStatics::CreateSaveGameObject(ULightSave::StaticClass()));
     Save->Best = Best; UGameplayStatics::SaveGameToSlot(Save, TEXT("PathOfLight"), 0);
     if (ACharacter* Character = UGameplayStatics::GetPlayerCharacter(this, 0)) Character->GetCharacterMovement()->DisableMovement();
-    Cue = Won ? TEXT("THE PATH IS READY. GANPATI BAPPA MORYA!") : TEXT("CHARIOT OVERTAKEN! CAUGHT BY THE RATH!");
+    Cue = Won ? TEXT("THE PATH IS READY. GANPATI BAPPA MORYA!") : Bells <= 0 ? TEXT("ALL SACRED BELLS LOST - PROTECT THE RATH!") : TEXT("CAUGHT BY THE RATH - CLEAR THE ASURAS!");
     PlayCue(Won ? TEXT("/Game/Audio/jingle_surge.jingle_surge") : TEXT("/Game/Audio/wood_heavy.wood_heavy"), 1.f);
     if (Music) Music->Stop();
     if (CrowdBed) CrowdBed->FadeOut(1.2f, 0.f);
@@ -2629,7 +2732,7 @@ void ALightGameMode::Finish(bool Won)
         PlayFX(FXTrail, FVector(FinishX, -300, 120), 0.35f);
         PlayFX(FXTrail, FVector(FinishX, 300, 120), 0.35f);
         UGameplayStatics::SetGlobalTimeDilation(this, 0.15f);
-        GetWorldTimerManager().SetTimer(SlowMoTimer, this, &ALightGameMode::RestoreTime, 0.3f, false);
+        GetWorldTimerManager().SetTimer(SlowMoTimer, this, &ALightGameMode::RestoreTime, 0.045f, false);
     }
 }
 
@@ -2655,7 +2758,7 @@ void ALightHUD::DrawHUD()
 
         if (Game->bFinished)
         {
-            const TCHAR* Result = Game->bWon ? TEXT("GANPATI BAPPA MORYA! PATH CLEARED!") : TEXT("CHARIOT OVERTAKEN! CAUGHT BY THE RATH!");
+            const TCHAR* Result = Game->bWon ? TEXT("GANPATI BAPPA MORYA! PATH CLEARED!") : *Game->Cue;
             const FLinearColor ResultColor = Game->bWon ? Gold : Red;
             DrawText(Result, ResultColor, CX - 320, CY - 150, nullptr, 2.2f);
 
@@ -2716,7 +2819,7 @@ void ALightHUD::DrawHUD()
     const float GaugeW = 480.f;
     const float GaugeH = 54.f;
     const float GaugeX = CX - GaugeW * 0.5f;
-    const float GaugeY = 14.f;
+    const float GaugeY = Canvas->SizeX < 1440.f ? 102.f : 14.f;
 
     const bool bCritical = Dist < 14.f;
     const bool bWarning = Dist >= 14.f && Dist < 25.f;
@@ -2726,8 +2829,8 @@ void ALightHUD::DrawHUD()
     DrawRect(StatusColor, GaugeX, GaugeY, GaugeW, 2.5f);
     DrawRect(StatusColor, GaugeX, GaugeY + GaugeH - 2.5f, GaugeW, 2.5f);
 
-    // Distance Bar Fill (0m to 60m scale)
-    const float BarRatio = FMath::Clamp(Dist / 60.f, 0.f, 1.f);
+    // Distance Bar Fill (0m to 70m scale)
+    const float BarRatio = FMath::Clamp(Dist / 70.f, 0.f, 1.f);
     const float BarFillW = (GaugeW - 20.f) * BarRatio;
     DrawRect(FLinearColor(0.08f, 0.08f, 0.12f, 0.8f), GaugeX + 10.f, GaugeY + 38.f, GaugeW - 20.f, 8.f);
     DrawRect(StatusColor, GaugeX + 10.f, GaugeY + 38.f, BarFillW, 8.f);
@@ -2743,8 +2846,8 @@ void ALightHUD::DrawHUD()
     // ── 2. TOP LEFT: 4-SLOT WEAPON SELECTOR HUD & BELLS ──
     const float WepBoxX = 20.f;
     const float WepBoxY = 14.f;
-    const float WepBoxW = 410.f;
-    const float WepBoxH = 78.f;
+    const float WepBoxW = 430.f;
+    const float WepBoxH = 96.f;
     DrawRect(FLinearColor(0.02f, 0.02f, 0.05f, 0.92f), WepBoxX, WepBoxY, WepBoxW, WepBoxH);
     DrawRect(Gold, WepBoxX, WepBoxY, WepBoxW, 2.f);
 
@@ -2756,7 +2859,7 @@ void ALightHUD::DrawHUD()
         { TEXT("[4]"), TEXT("BRAHMA"), EWeaponType::Brahmastra, Red }
     };
 
-    const float SlotW = 92.f;
+    const float SlotW = 96.f;
     const float SlotH = 38.f;
     for (int32 s = 0; s < 4; ++s)
     {
@@ -2774,20 +2877,27 @@ void ALightHUD::DrawHUD()
     }
 
     // Auto-Fire & Controls reminder
-    const FString AutoStr = Runner->bAutoFire ? TEXT("AUTO-CAST: [ON]  [T]") : TEXT("AUTO-CAST: [OFF] [T]");
+    const FString AutoStr = Runner->bAutoFire ? TEXT("AUTO-CAST: [ON] [T]") : TEXT("AUTO-CAST: [OFF] [T]");
     const FLinearColor AutoCol = Runner->bAutoFire ? FLinearColor(0.3f, 0.95f, 0.4f) : FLinearColor(0.7f, 0.7f, 0.75f);
-    DrawText(AutoStr, AutoCol, WepBoxX + 12.f, WepBoxY + 50.f, nullptr, 0.95f);
+    DrawText(AutoStr, AutoCol, WepBoxX + 12.f, WepBoxY + 48.f, nullptr, 0.92f);
 
-    const FString TierStr = FString::Printf(TEXT("TIER %d | [Q]/[E] CYCLE"), Runner->WeaponLevel);
-    DrawText(TierStr, FLinearColor(0.85f, 0.85f, 0.85f), WepBoxX + 160.f, WepBoxY + 50.f, nullptr, 0.95f);
+    const FString TierStr = FString::Printf(TEXT("TIER %d | Q/E"), Runner->WeaponLevel);
+    DrawText(TierStr, FLinearColor(0.9f, 0.9f, 0.9f), WepBoxX + 155.f, WepBoxY + 48.f, nullptr, 0.92f);
+
+    // Active Astra Power Description
+    const TCHAR* ActivePower = (Runner->CurrentWeapon == EWeaponType::Vajra) ? TEXT("POWER: PIERCING LIGHTNING (PASSES THROUGH DEMONS)") :
+                               (Runner->CurrentWeapon == EWeaponType::Trishul) ? TEXT("POWER: 3-LANE HOLY FIRE (SPREAD VOLLEY ACROSS ROAD)") :
+                               (Runner->CurrentWeapon == EWeaponType::Chakra) ? TEXT("POWER: SOLAR SAW DISC (RAPID SLICING ROTATION)") :
+                                                                               TEXT("POWER: CATACLYSM SHOCKWAVE (MASSIVE OBLITERATION BLAST)");
+    DrawText(ActivePower, Slots[FMath::Clamp(static_cast<int32>(Runner->CurrentWeapon), 0, 3)].Color, WepBoxX + 12.f, WepBoxY + 70.f, nullptr, 0.82f);
 
     // Sacred Bells Icons
     for (int32 i = 0; i < 3; ++i)
     {
         const bool Active = i < Game->Bells;
         const float BX = WepBoxX + WepBoxW - 84.f + i * 26.f;
-        DrawRect(Active ? Gold : FLinearColor(0.2f, 0.2f, 0.2f, 0.5f), BX, WepBoxY + 48.f, 20.f, 20.f);
-        if (Active) DrawText(TEXT("B"), FLinearColor::Black, BX + 5.f, WepBoxY + 50.f, nullptr, 0.8f);
+        DrawRect(Active ? Gold : FLinearColor(0.2f, 0.2f, 0.2f, 0.5f), BX, WepBoxY + 46.f, 20.f, 20.f);
+        if (Active) DrawText(TEXT("B"), FLinearColor::Black, BX + 5.f, WepBoxY + 48.f, nullptr, 0.8f);
     }
 
     // ── 3. TOP RIGHT: PERFORMANCE STATS ──
@@ -2800,6 +2910,43 @@ void ALightHUD::DrawHUD()
 
     DrawText(FString::Printf(TEXT("BANISHED: %d"), Game->ObstaclesBlasted), Gold, StatBoxX + 14.f, StatBoxY + 8.f, nullptr, 1.3f);
     DrawText(FString::Printf(TEXT("SEVA: %d  |  x%d"), Game->Score, Game->Flow), White, StatBoxX + 14.f, StatBoxY + 36.f, nullptr, 1.1f);
+
+    // ── 5. WORLD CLARITY: OVERHEAD ASURA NAMEPLATES & HEALTH BARS ──
+    for (ALightProp* Prop : Game->Props)
+    {
+        if (!IsValid(Prop) || Prop->bCleared) continue;
+        const FVector PLoc = Prop->GetActorLocation();
+        const float Dx = PLoc.X - Runner->GetActorLocation().X;
+        if (Dx < -200.f || Dx > 3400.f) continue;
+
+        const float OverheadZ = (Prop->bGate || Prop->Kind == ETailKind::DemonGate) ? 410.f :
+                                (Prop->Kind == ETailKind::Brute) ? 260.f : 170.f;
+        const FVector ScreenPos = Canvas->Project(PLoc + FVector(0, 0, OverheadZ));
+        if (ScreenPos.Z <= 0.f || ScreenPos.X < -100.f || ScreenPos.X > Canvas->SizeX + 100.f) continue;
+
+        const float BarW = (Prop->bGate || Prop->Kind == ETailKind::DemonGate) ? 140.f :
+                           (Prop->Kind == ETailKind::Brute) ? 100.f : 64.f;
+        const float BarH = 8.f;
+        const float BX = ScreenPos.X - BarW * 0.5f;
+        const float BY = ScreenPos.Y;
+
+        // Health background
+        DrawRect(FLinearColor(0.02f, 0.02f, 0.05f, 0.85f), BX - 1.f, BY - 1.f, BarW + 2.f, BarH + 2.f);
+
+        const int32 MaxHP = (Prop->bGate || Prop->Kind == ETailKind::DemonGate) ? 6 :
+                            (Prop->Kind == ETailKind::Brute) ? 3 : 1;
+        const float HPFrac = FMath::Clamp(static_cast<float>(Prop->Health) / MaxHP, 0.f, 1.f);
+        const FLinearColor HPCol = Prop->bExplosive ? FLinearColor(1.f, 0.45f, 0.05f) :
+                                  (Prop->Kind == ETailKind::Brute) ? FLinearColor(0.95f, 0.15f, 0.15f) :
+                                  (Prop->bGate || Prop->Kind == ETailKind::DemonGate) ? FLinearColor(0.85f, 0.1f, 0.9f) : FLinearColor(1.f, 0.2f, 0.2f);
+        DrawRect(HPCol, BX, BY, BarW * HPFrac, BarH);
+
+        // Demon tag
+        const TCHAR* DTag = Prop->bExplosive ? TEXT("! FIEND [EXPLOSIVE] !") :
+                            (Prop->Kind == ETailKind::Brute) ? TEXT("RAKSHASA BRUTE") :
+                            (Prop->bGate || Prop->Kind == ETailKind::DemonGate) ? TEXT("MAHISHASURA GATE") : TEXT("ASURA");
+        DrawText(DTag, HPCol, BX, BY - 15.f, nullptr, 0.85f);
+    }
 
     // ── 4. SCREEN EDGE RED PULSE WARNING (WHEN CHARIOT IS VERY CLOSE) ──
     if (bCritical)
@@ -2828,12 +2975,15 @@ void ALightHUD::DrawHUD()
     // ── 6. CENTER NOTIFICATION BARKS ──
     if (Game->Elapsed < Game->CueUntil && !Game->Cue.IsEmpty())
     {
-        const float CueW = Game->Cue.Len() * 18.f;
+        float CueW = 0.f, CueH = 0.f;
+        GetTextSize(Game->Cue, CueW, CueH, nullptr, 1.7f);
+        const float CueScale = 1.7f * FMath::Min(1.f, (Canvas->SizeX - 60.f) / FMath::Max(1.f, CueW));
+        GetTextSize(Game->Cue, CueW, CueH, nullptr, CueScale);
         const FLinearColor BarkCol = Game->Cue.Contains(TEXT("MISSED")) ? Red :
                                      Game->Cue.Contains(TEXT("UPGRADE")) ? FLinearColor(0.2f, 0.85f, 1.f) : Gold;
         DrawRect(FLinearColor(0.02f, 0.02f, 0.04f, 0.88f), CX - CueW * 0.5f - 15, CY + 70, CueW + 30, 42);
         DrawRect(BarkCol, CX - CueW * 0.5f - 15, CY + 70, CueW + 30, 2);
-        DrawText(Game->Cue, BarkCol, CX - CueW * 0.5f, CY + 78, nullptr, 1.7f);
+        DrawText(Game->Cue, BarkCol, CX - CueW * 0.5f, CY + 78, nullptr, CueScale);
     }
 
     if (Game->bPaused)

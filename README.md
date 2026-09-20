@@ -1,5 +1,7 @@
 # Vighnaharta: Path of Light
 
+> **20 September 2026 — desktop 3D runtime:** the native Unreal game with Astras and Asuras is in [unreal/PathOfLight](unreal/README.md). See [the gameplay audit](unreal/GAMEPLAY_AUDIT.md) for current fixes and verification. Earlier status notes below describe older prototypes.
+
 > **17 September 2026 — new authoritative direction:** the single Tail-Tether game is now being prepared in Unreal Engine 5.8. See [Unreal project status and local deployment](unreal/README.md) and [the competition directive](unreal/BUILD_DIRECTIVE.md). The Unreal game is not playable yet: compilation is blocked by the missing Windows SDK/toolchain. The streaming web server and reference frontend build and pass a local HTTP smoke test. The older browser prototype and historical chapter notes below are retained for reference; the six minigames are no longer requirements.
 
 A browser festival adventure about helping Ganesha's procession reach the nimarjanam ghat.

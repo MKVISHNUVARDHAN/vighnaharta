@@ -90,6 +90,7 @@ public:
     float BlastRadius = 0.f;
     float SpinAngle = 0.f;
     bool bActive = false;
+    TSet<TWeakObjectPtr<ALightProp>> HitTargets;
     void Launch(FVector StartPos, FVector Dir, EWeaponType InWeapon, int32 InTier);
     void Deactivate();
     virtual void Tick(float Delta) override;
@@ -229,6 +230,7 @@ public:
     UPROPERTY(BlueprintReadOnly) float Momentum = 900;
     UPROPERTY(BlueprintReadOnly) EWeaponType CurrentWeapon = EWeaponType::Vajra;
     UPROPERTY(BlueprintReadOnly) int32 WeaponLevel = 1;
+    int32 WeaponLevels[4] = { 1, 1, 1, 1 };
     UPROPERTY(BlueprintReadOnly) float FireCooldown = 0.f;
     UPROPERTY(BlueprintReadOnly) bool bAutoFire = true;
     float FOVKick = 0;
@@ -239,6 +241,7 @@ public:
     float GetHoldTime() const { return HoldTime; }
     void CancelTail();
     void FireMagic();
+    float GetFireInterval() const;
     UFUNCTION(BlueprintCallable) void ToggleAutoFire();
     UFUNCTION(BlueprintCallable) void SelectWeapon(EWeaponType NewType);
     UFUNCTION(BlueprintCallable) void NextWeapon();
@@ -281,6 +284,7 @@ public:
     ALightGameMode();
     virtual void BeginPlay() override;
     virtual void Tick(float Delta) override;
+    UPROPERTY(BlueprintReadOnly) TObjectPtr<ALightRunner> CachedRunner;
     UPROPERTY(BlueprintReadOnly) TArray<TObjectPtr<ALightProp>> Props;
     UPROPERTY(BlueprintReadOnly) TArray<TObjectPtr<ALightCitizen>> Citizens;
     UPROPERTY() TArray<TObjectPtr<ALightSpark>> Sparks;
@@ -305,6 +309,7 @@ public:
     UPROPERTY(BlueprintReadOnly) int32 MissedObstacles = 0;
     int32 Chain = 0, MaxFlow = 1, Perfects = 0, Saves = 0, Best = 0;
     int32 PhysicsChains = 0, Secrets = 0, Intensity = 0, PathIndex = 0, SparkIndex = 0;
+    int32 LookBand = -1;
     float ProcessionX = -2400, Elapsed = 0, FlowExpiry = 0, Surge = 0;
     float ProcessionPause = 0, CameraPunch = 0, Shake = 0, PhaseLeft = 14.f, IntroLeft = 0;
     float GrindCooldown = 0.f, AlarmCooldown = 0.f;
