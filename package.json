@@ -4,6 +4,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "depositguard": "npm --prefix depositguard run dev",
+    "depositguard:build": "npm --prefix depositguard run build",
     "build": "tsc && vite build",
     "preview": "vite preview",
     "lint": "eslint ."
